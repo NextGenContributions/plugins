@@ -12,6 +12,20 @@ lint:
       description: A Python linter and formatter
       commands:
         - name: lint
+          # As of ruff v0.1.8, ruff supports sarif output format.
+          # Here we use ruff's sarif output instead of doing json->sarif parsing.
+          # Ruff's sarif output may not have autofix suggestions like json output.
+          # Also 'ruleId' maybe null, which will be handled by a new custom parser.
+          version: ">=0.9.9"
+          files: [python, python-interface, jupyter]
+          run: ruff check --cache-dir ${cachedir} --output-format sarif ${target}
+          output: sarif
+          parser:
+            runtime: python
+            run: python3 ${cwd}/ruff_sarif_to_trunk_sarif.py
+          batch: true
+          success_codes: [0, 1]
+        - name: lint
           # As of ruff v0.6.0, ruff runs by default on jupyter notebooks
           version: ">=0.6.0"
           files: [python, python-interface, jupyter]
@@ -45,12 +59,12 @@ lint:
           batch: true
           success_codes: [0, 1]
         - name: lint
-          files: [python, python-interface]
-          run: ruff check --cache-dir ${cachedir} --format json ${target}
+          files: [python, python-interface, jupyter]
+          run: ruff check --cache-dir ${cachedir} --output-format sarif ${target}
           output: sarif
           parser:
             runtime: python
-            run: python3 ${cwd}/ruff_to_sarif.py 1
+            run: python3 ${cwd}/ruff_sarif_to_trunk_sarif.py
           batch: true
           success_codes: [0, 1]
         - name: format
@@ -65,7 +79,7 @@ lint:
           formatter: true
           enabled: false
       tools: [ruff]
-      direct_configs: [ruff.toml]
+      direct_configs: [.ruff.toml, ruff.toml]
       affects_cache:
         - pyproject.toml
         - setup.cfg
@@ -90,7 +104,7 @@ lint:
       runtime: python
       package: ruff
       extra_packages: [nbqa==1.8.5]
-      direct_configs: [ruff.toml]
+      direct_configs: [.ruff.toml, ruff.toml]
       affects_cache:
         - pyproject.toml
         - setup.cfg
